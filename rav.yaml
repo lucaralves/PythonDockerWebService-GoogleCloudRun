@@ -1,0 +1,19 @@
+scripts:
+  installs: /opt/venv/bin/python -m pip install -r requirements.txt
+  runserver: uvicorn main:workspace --reload
+  test: pytest test.py
+  build: docker build -f Dockerfile -t serverless-py .
+  containerize: docker run -p 8000:8000 --name serverless-container-py -it serverless-py
+  build_containerize:
+    - rav run build
+    - rav run containerize
+  start: docker start serverless-container-py
+  stop: docker stop serverless-container-py
+  create_repo:
+    - gcloud auth configure-docker us-central1-docker.pkg.dev
+    - gcloud artifacts repositories create serverless-py-repo --repository-format=docker --location=us-central1
+  push:
+    - docker build --platform=linux/amd64 -f Dockerfile -t serverless-py-amd64 .
+    - docker tag serverless-py-amd64 us-central1-docker.pkg.dev/teak-node-386212/serverless-py-repo/serverless-py:latest
+    - docker push us-central1-docker.pkg.dev/teak-node-386212/serverless-py-repo/serverless-py --all-tags
+  deploy: gcloud run deploy serverless-py-service-cl --image=us-central1-docker.pkg.dev/teak-node-386212/serverless-py-repo/serverless-py:latest --allow-unauthenticated --region=us-central1 --project=teak-node-386212
